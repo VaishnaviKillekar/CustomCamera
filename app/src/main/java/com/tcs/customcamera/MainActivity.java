@@ -2,7 +2,10 @@ package com.tcs.customcamera;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -17,6 +20,7 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
@@ -32,11 +36,17 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -144,18 +154,51 @@ public class MainActivity extends AppCompatActivity {
             ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
                 @Override
                 public void onImageAvailable(ImageReader imageReader) {
+
+                    file = new File(Environment.getExternalStorageDirectory() + "/" + UUID.randomUUID().toString() + ".jpg");
                     Image image = null;
 
-                    try {
+                    try
+                    {
+//                        int width=640;
+//                        int height=480;
+
                         image = imageReader.acquireLatestImage();
                         ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                        buffer.rewind();
                         byte[] bytes = new byte[buffer.capacity()];
                         buffer.get(bytes);
+                        save(bytes);
+
+                        startActivity(new Intent(MainActivity.this, ImageDisplay.class).putExtra("FILE", file.getPath()));
                     }
 
                     finally {
                         if(image != null)
                             image.close();
+                    }
+                }
+
+                public void save(byte[] bytes)
+                {
+                    OutputStream outputStream = null;
+
+                    try
+                    {
+                        outputStream = new FileOutputStream(file);
+                        outputStream.write(bytes);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        if(outputStream == null) {
+                            try {
+                                outputStream.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
                     }
                 }
             };
